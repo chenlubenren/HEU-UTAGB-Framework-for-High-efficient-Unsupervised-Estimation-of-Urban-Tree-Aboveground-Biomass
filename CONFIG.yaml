@@ -1,0 +1,81 @@
+# 输入：LAS 文件夹
+INPUT_LAS_DIR: "las_files"           # Directory containing multiple .las/.laz files
+# 输出根目录
+OUTPUT_ROOT: "output"                     # Root folder where all results will be saved
+
+
+# Step1：点云预处理与地面/建筑过滤
+STEP1:
+  VOXEL_XY: [0.1]                       # XY voxel edge length (m) – smaller keeps detail
+  VOXEL_Z: [100]                      # Z voxel edge length (m) – larger downsamples height
+  RADIUS_OUTLIER_NB: [50]           # Min neighbour count for outlier removal
+  RADIUS_OUTLIER_R: [1]          # Neighbourhood radius (m) for outlier removal
+
+  TILE_SIZE: 100
+  GROUND_FILTER_AUTO: FALSE
+  RANSAC_MAX_ITER: [100]         # Max RANSAC iterations for plane fitting
+  GROUND_FILTER_DISTANCE_MANUAL: 0.9
+  GROUND_FILTER_LEVEL: [10]        # Ground filter strength multiplier vs avg spacing
+
+  EIG_RATIO_THRES:  [0.932]          # Eigenvalue ratio threshold for building detection
+  KD_TREE_RADIUS: [2.5]
+
+  VISUALIZE_STEP1: FALSE        # true = 弹出 Open3D 视窗查看地面/建筑/其他分类结果# KD-tree search radius (m) for building extraction
+
+
+# Step2：CHM/DEM 生成
+STEP2:
+  RESOLUTION: [0.05]                     # Fine DEM/CHM raster resolution (m)
+  SUB_RESOLUTION: [0.5]                  # Coarse CHM raster resolution (m) for sub-canopy
+  LOWEST_THRESHOLD: [2.0,0,0.5,1,1.5,2.5]          # Minimum vegetation height above ground (m)
+  HIGHEST_THRESHOLD: [30.0]              # Maximum vegetation height (m) – discard outliers
+  SUB_CHM_OFFSET: [1.5]                  # Offset from top-of-canopy for sub-canopy voxel (m)
+  EPSG_CODE: 29902                       # EPSG code for output CRS
+
+# Step3：多尺度分割
+STEP3:
+  SCALE: [45]
+  COLOR_WEIGHT: [0.2]
+  SHAPE_WEIGHT: [0.9]
+
+# Step4：基于特征的过滤
+STEP4:
+  AREA_SMALL_TH: [10]
+  NEAR_CIRC_MIN: [0.13]
+
+  MEAN_CHM_MIN: [2.0]
+  MEAN_CHM_MAX: [30.0]
+
+  ASPECT_RATIO_MAX: [3.1]          # Aspect-ratio threshold – drop elongated objects
+
+  SUB_CNT_RATIO: [0.2,0.15]
+
+  GLCM_CON: [0]                    #待定
+  CHM_VAR_MIN: [0]
+
+  ##small tree（ST）保留
+  ST_NEAR_CIRC_MIN: [0.55]            # Circularity lower bound – keep round objects
+
+  ST_CHM_MIN: [2]                       # Minimum object area (m²)
+  ST_CHM_MAX: [10]                     # Maximum object area (m²)
+
+  ST_AREA_MIN: [5.0]               # Mean CHM upper bound – likely buildings above
+  ST_AREA_MAX: [100]
+
+  MERGE_BUFFER_PIXELS: [2, 3]            # Morphological dilation radius for merging (px)
+
+# Step5：分水岭单木分割
+STEP5:
+  DOWNSAMPLE_RES: [0.5]
+  GAUSSIAN_SIGMA: [1.5, 2]            # CHM smoothing σ for tree-top detection
+  MIN_DISTANCE: [4, 3.4, 3.8, 3.6]                # Minimum distance between detected tree tops (m)
+  THRESHOLD_ABS: [3]                     # Absolute height threshold for local maxima (m)
+
+  ST_MIN_AREA_M2: [25]
+  ST_MAX_AREA_M2: [150]
+
+  MAX_AREA_M2: [300]
+
+  MIN_CIRCULARITY: [0.55]               # Circularity lower bound for crown merging
+  MAX_ITER: [0]                          # Maximum post-processing iterations
+  N_JOBS: 1                     # CPU cores for parallel processing (0 = auto)
